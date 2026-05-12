@@ -16,9 +16,10 @@ private:
     sf::Texture mazeBoardTexture;
     vector<vector<bool>> bitmask; // 0: obstacle, 1: access
     sf::Texture overlayTexture;
-    float speed = 1.f;
+    float speed = 3.f;
 
-    bool DEBUG = true;
+    bool DEBUG = false;
+    bool changed = true;
 
 public:
     Game(){
@@ -71,6 +72,44 @@ public:
         }
     }
 
+    bool canTread(sf::Vector2f& pos){
+        float playerX = pos.x;
+        float playerY = pos.y;
+
+        float scaleX = (float)mazeBoardSize.x / WIDTH;
+        float scaleY = (float)mazeBoardSize.y / HEIGHT;
+
+        unsigned int pixelX = scaleX * playerX;
+        unsigned int pixelY = scaleY * playerY;
+
+
+        if(!bitmask[pixelY][pixelX]){
+            return false;
+        }
+        return true;
+    }
+
+    void _handleMovements(sf::CircleShape& player){
+        sf::Vector2f currPos = player.getPosition();
+        sf::Vector2f newPos = currPos;
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::K) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)){
+            newPos = {currPos.x, currPos.y-speed};
+        }
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::L) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)){
+            newPos = {currPos.x+speed, currPos.y};
+        }
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::J) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)){
+            newPos = {currPos.x, currPos.y+speed};
+        }
+        if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::H) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left)){
+            newPos = {currPos.x-speed, currPos.y};
+        }
+
+        if(canTread(newPos)){
+            player.setPosition(newPos);
+        }
+    }
+
     void run(){
         sf::Sprite mazeBoardSprite(mazeBoardTexture);
         mazeBoardSprite.setScale(
@@ -82,7 +121,7 @@ public:
         );
 
         // player
-        float radius = 7.f;
+        float radius = 5.f;
         sf::CircleShape player(radius);
         player.setFillColor(sf::Color(255, 0, 0));
 
@@ -95,24 +134,11 @@ public:
                 if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)){
                     sf::Vector2f pos = m_window.mapPixelToCoords(sf::Mouse::getPosition(m_window));
                     player.setPosition({pos.x - radius, pos.y - radius});
-                }
-                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::K) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)){
-                    sf::Vector2f currPos = player.getPosition();
-                    player.setPosition({currPos.x, currPos.y-speed});
-                }
-                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::L) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)){
-                    sf::Vector2f currPos = player.getPosition();
-                    player.setPosition({currPos.x+speed, currPos.y});
-                }
-                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::J) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)){
-                    sf::Vector2f currPos = player.getPosition();
-                    player.setPosition({currPos.x, currPos.y+speed});
-                }
-                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::H) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left)){
-                    sf::Vector2f currPos = player.getPosition();
-                    player.setPosition({currPos.x-speed, currPos.y});
+                    if(DEBUG)
+                        cout << "[click] " << pos.x << ", " << pos.y << endl;
                 }
             }
+            _handleMovements(player);
 
             m_window.clear(sf::Color::White);
             m_window.draw(mazeBoardSprite);
