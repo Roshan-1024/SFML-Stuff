@@ -16,13 +16,14 @@ private:
     sf::Texture mazeBoardTexture;
     vector<vector<bool>> bitmask; // 0: obstacle, 1: access
     sf::Texture overlayTexture;
+    float speed = 1.f;
 
     bool DEBUG = true;
 
 public:
     Game(){
         cout << "Welcome to the Maze game" << endl;
-        m_window.setFramerateLimit(10);
+        m_window.setFramerateLimit(30);
         if(!mazeBoardTexture.loadFromFile("assets/maze1.jpg")){
             cout << "maze image not found";
             exit(1);
@@ -59,7 +60,7 @@ public:
         for(unsigned int y = 0; y < mazeBoardSize.y; y++){
             for(unsigned int x = 0; x < mazeBoardSize.x; x++){
                 if(!bitmask[y][x]){
-                    overlay.setPixel({x, y}, sf::Color(255, 0, 0, 100));
+                    overlay.setPixel({x, y}, sf::Color(255, 0, 0, 255));
                 }
             }
         }
@@ -79,16 +80,43 @@ public:
         overlaySprite.setScale(
             {(float)WIDTH/mazeBoardSize.x, (float)HEIGHT/mazeBoardSize.y}
         );
+
+        // player
+        float radius = 7.f;
+        sf::CircleShape player(radius);
+        player.setFillColor(sf::Color(255, 0, 0));
+
         // Game loop
         while(m_window.isOpen()){
             while(const std::optional<sf::Event> event = m_window.pollEvent()){
                 if(event->is<sf::Event::Closed>()){
                     m_window.close();
                 }
+                if(sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)){
+                    sf::Vector2f pos = m_window.mapPixelToCoords(sf::Mouse::getPosition(m_window));
+                    player.setPosition({pos.x - radius, pos.y - radius});
+                }
+                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::K) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up)){
+                    sf::Vector2f currPos = player.getPosition();
+                    player.setPosition({currPos.x, currPos.y-speed});
+                }
+                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::L) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)){
+                    sf::Vector2f currPos = player.getPosition();
+                    player.setPosition({currPos.x+speed, currPos.y});
+                }
+                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::J) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down)){
+                    sf::Vector2f currPos = player.getPosition();
+                    player.setPosition({currPos.x, currPos.y+speed});
+                }
+                if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::H) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left)){
+                    sf::Vector2f currPos = player.getPosition();
+                    player.setPosition({currPos.x-speed, currPos.y});
+                }
             }
 
             m_window.clear(sf::Color::White);
             m_window.draw(mazeBoardSprite);
+            m_window.draw(player);
             if(DEBUG)
                 m_window.draw(overlaySprite);
             m_window.display();
