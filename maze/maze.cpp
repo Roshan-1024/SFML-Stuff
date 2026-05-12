@@ -14,46 +14,69 @@ private:
     sf::RenderWindow m_window{sf::VideoMode({WIDTH, HEIGHT}), "Maze"};
     sf::Vector2u mazeBoardSize;
     sf::Texture mazeBoardTexture;
+    vector<vector<bool>> bitmask; // 0: obstacle, 1: access
+    sf::Texture overlayTexture;
 
-    vector<vector<bool>> bitmask;
+    bool DEBUG = true;
 
 public:
     Game(){
         cout << "Welcome to the Maze game" << endl;
+        m_window.setFramerateLimit(10);
         if(!mazeBoardTexture.loadFromFile("assets/maze1.jpg")){
-                cout << "maze image not found";
-                exit(1);
+            cout << "maze image not found";
+            exit(1);
         }
         mazeBoardSize = mazeBoardTexture.getSize();
-        bitmask.assign(mazeBoardSize.y, vector<bool>(mazeBoardSize.x));
+        bitmask.assign(mazeBoardSize.y, vector<bool>(mazeBoardSize.x, true));
 
         _initBitmask();
+        if(DEBUG)
+            _createOverlay();
     }
 
     void _initBitmask(){
         sf::Image image = mazeBoardTexture.copyToImage();
         const std::uint8_t* pixels = image.getPixelsPtr();
-        sf::Vector2u size = image.getSize();
 
-        for(int i = 0; i < size.y; i++){
-            for(int j = 0; j < size.x; j++){
-                int idx = (i * size.x + j) * 4; // skip by 4, cuz rgba per pixel
+        for(int i = 0; i < mazeBoardSize.y; i++){
+            for(int j = 0; j < mazeBoardSize.x; j++){
+                int idx = (i * mazeBoardSize.x + j) * 4; // skip by 4, cuz rgba per pixel
                 uint8_t r = pixels[idx];
                 uint8_t g = pixels[idx+1];
                 uint8_t b = pixels[idx+2];
                 // a not required
 
-                if(r != 255 || g != 255 || b != 255){ // for black
-                    bitmask[i][j] = true;
+                if(r == 0 && g == 0 && b == 0){ // for black
+                    bitmask[i][j] = false;
+                }
+            }
+        }
+    }
+
+    void _createOverlay(){
+        sf::Image overlay({mazeBoardSize.x, mazeBoardSize.y}, sf::Color(0, 0, 0, 0));
+        for(unsigned int y = 0; y < mazeBoardSize.y; y++){
+            for(unsigned int x = 0; x < mazeBoardSize.x; x++){
+                if(!bitmask[y][x]){
+                    overlay.setPixel({x, y}, sf::Color(255, 0, 0, 100));
                 }
             }
         }
 
+        if(!overlayTexture.loadFromImage(overlay)){
+            cout << "overlay loading from image failed";
+            exit(1);
+        }
     }
 
     void run(){
         sf::Sprite mazeBoardSprite(mazeBoardTexture);
         mazeBoardSprite.setScale(
+            {(float)WIDTH/mazeBoardSize.x, (float)HEIGHT/mazeBoardSize.y}
+        );
+        sf::Sprite overlaySprite(overlayTexture);
+        overlaySprite.setScale(
             {(float)WIDTH/mazeBoardSize.x, (float)HEIGHT/mazeBoardSize.y}
         );
         // Game loop
@@ -66,6 +89,8 @@ public:
 
             m_window.clear(sf::Color::White);
             m_window.draw(mazeBoardSprite);
+            if(DEBUG)
+                m_window.draw(overlaySprite);
             m_window.display();
         }
     }
